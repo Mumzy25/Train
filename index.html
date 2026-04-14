@@ -460,6 +460,8 @@ function init() {
   document.getElementById('topDate').textContent = new Date().toLocaleDateString('en-AU',{weekday:'short',day:'numeric',month:'short'}).toUpperCase();
   renderPicker();
   renderProg('onsite');
+  renderHistory();
+  renderProgress();
   loadCloud();
 }
 
@@ -467,7 +469,7 @@ function renderAll() {
   renderPicker();
   renderHistory();
   renderProgress();
-  renderProg('onsite');
+  renderProg(curProg||'onsite');
 }
 
 // ============================================================
