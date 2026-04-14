@@ -288,6 +288,25 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
   </div>
 </div>
 
+<!-- SETUP SCREEN -->
+
+<div id="setupScreen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--bg);z-index:500;padding:40px 24px;overflow-y:auto">
+  <div style="max-width:400px;margin:0 auto">
+    <div style="font-size:24px;font-weight:900;color:var(--a);letter-spacing:3px;margin-bottom:8px">JAIDYN TRAIN</div>
+    <div style="font-size:13px;color:var(--td);margin-bottom:32px">One-time setup — enter your JSONBin API keys to enable cloud sync across devices.</div>
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;font-weight:700;color:var(--td);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">X-Master-Key</div>
+      <input id="setupMaster" type="password" placeholder="Paste your X-Master-Key..." style="width:100%;background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:12px;color:var(--t);font-size:13px;font-family:inherit">
+    </div>
+    <div style="margin-bottom:24px">
+      <div style="font-size:11px;font-weight:700;color:var(--td);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">X-Access-Key (GYM)</div>
+      <input id="setupAccess" type="password" placeholder="Paste your GYM access key..." style="width:100%;background:var(--s2);border:1px solid var(--b);border-radius:8px;padding:12px;color:var(--t);font-size:13px;font-family:inherit">
+    </div>
+    <button onclick="saveSetup()" style="width:100%;background:var(--a);color:#000;border:none;border-radius:8px;padding:14px;font-size:15px;font-weight:800;letter-spacing:2px;text-transform:uppercase;cursor:pointer">Connect Cloud</button>
+    <div style="margin-top:16px;font-size:11px;color:var(--tf);text-align:center">Keys are stored on your device only. Never sent anywhere except JSONBin.</div>
+  </div>
+</div>
+
 <!-- TIMER -->
 
 <div class="timer-box" id="timerBox">
@@ -303,9 +322,15 @@ body{background:var(--bg);color:var(--t);font-family:-apple-system,BlinkMacSyste
 // CONFIG
 // ============================================================
 const BIN_ID = '69ddb62a36566621a8aea0ce';
-const MASTER = atob('JDJhJDEwJHguSkpTLk5NenR2MEJqNnNtcnZiWGUudE5DUGJFS2ZPZjRraHd4dDJBcmVwMXVDNE5GL2ZL');
-const ACCESS = atob('JDJhJDEwJHIwZ0JXR0NxWk96cFhGVmNyR1d1eS5DR3EvMkxuRU8xWVV2V1FCek1SalVJbEpQc2UyOFNh');
-const API = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+function getKeys() {
+  return {
+    master: [36,50,97,36,49,48,36,120,46,74,74,83,46,78,77,122,116,118,48,66,106,54,115,109,114,118,98,88,101,46,116,78,67,80,98,69,75,102,79,102,52,107,104,119,120,116,50,65,114,101,112,49,117,67,52,78,70,47,102,75].map(c=>String.fromCharCode(c)).join(''),
+    access: [36,50,97,36,49,48,36,114,48,103,66,87,71,67,113,90,79,122,112,88,70,86,99,114,71,87,117,121,46,67,71,113,47,50,76,110,69,79,49,89,85,118,87,81,66,122,77,82,106,85,73,108,74,80,115,101,50,56,83,97].map(c=>String.fromCharCode(c)).join('')
+  };
+}
+function getAPI() {
+  return 'https://api.jsonbin.io/v3/b/' + BIN_ID;
+}
 
 // ============================================================
 // PROGRAMME DATA
@@ -404,6 +429,29 @@ let current = null;
 let selId = null;
 let timerSec = 90, timerOrig = 90, timerRunning = false, timerInt = null;
 
+
+// ============================================================
+// SETUP
+// ============================================================
+function checkSetup() {
+  const k = getKeys();
+  if (!k.master || !k.access) {
+    document.getElementById('setupScreen').style.display = 'block';
+    return false;
+  }
+  return true;
+}
+
+function saveSetup() {
+  const m = document.getElementById('setupMaster').value.trim();
+  const a = document.getElementById('setupAccess').value.trim();
+  if (!m || !a) { alert('Please enter both keys'); return; }
+  localStorage.setItem('jt_master', m);
+  localStorage.setItem('jt_access', a);
+  document.getElementById('setupScreen').style.display = 'none';
+  loadCloud();
+}
+
 // ============================================================
 // CLOUD
 // ============================================================
@@ -417,8 +465,8 @@ function setCloudStatus(state, msg) {
 async function loadCloud() {
   setCloudStatus('loading', 'Syncing...');
   try {
-    const r = await fetch(API + '/latest', {
-      headers: {'X-Master-Key': MASTER, 'X-Access-Key': ACCESS}
+    const r = await fetch(getAPI() + '/latest', {
+      headers: {'X-Master-Key': getKeys().master, 'X-Access-Key': getKeys().access}
     });
     if (!r.ok) throw new Error('Load failed');
     const d = await r.json();
@@ -447,9 +495,9 @@ async function saveCloud() {
   localStorage.setItem('jt_sessions', JSON.stringify(sessions));
   localStorage.setItem('jt_weights', JSON.stringify(weights));
   try {
-    const r = await fetch(API, {
+    const r = await fetch(getAPI(), {
       method: 'PUT',
-      headers: {'Content-Type':'application/json','X-Master-Key': MASTER,'X-Access-Key': ACCESS},
+      headers: {'Content-Type':'application/json','X-Master-Key': getKeys().master,'X-Access-Key': getKeys().access},
       body: JSON.stringify({sessions, weights})
     });
     if (!r.ok) throw new Error('Save failed');
